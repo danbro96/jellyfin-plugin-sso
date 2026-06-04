@@ -87,7 +87,23 @@ function getDeviceName() {
   return "DUMMY";
 }
 
+function nativeAppHost() {
+  try {
+    if (window.NativeShell && window.NativeShell.AppHost) {
+      return window.NativeShell.AppHost;
+    }
+  } catch (e) {}
+  return null;
+}
+
 function getDeviceId() {
+  const host = nativeAppHost();
+  try {
+    if (host && typeof host.deviceId === "function") {
+      const id = host.deviceId();
+      if (id) return id;
+    }
+  } catch (e) {}
   return localStorage.getItem("_deviceId2");
 }
 
@@ -95,15 +111,19 @@ const sleep = (milliseconds) => {
   return new Promise((resolve) => setTimeout(resolve, milliseconds));
 };
 
+// Wait (bounded) for jellyfin-web to have written credentials for this server.
+// Do NOT depend on _deviceId2 — native apps source the device id from the
+// NativeShell bridge and never write that key, so the original unbounded loop
+// hung forever. Never loop indefinitely.
 async function awaitLocalStorage() {
-  while (
-    localStorage.getItem("_deviceId2") == null ||
-    localStorage.getItem("jellyfin_credentials") == null ||
-    JSON.parse(localStorage.getItem("jellyfin_credentials"))["Servers"][0][
-      "Id"
-    ] == null
-  ) {
-    // If localStorage isn't initialized yet, try again.
+  for (let attempt = 0; attempt < 50; attempt++) {
+    const creds = localStorage.getItem("jellyfin_credentials");
+    if (creds != null) {
+      const servers = JSON.parse(creds)["Servers"];
+      if (servers && servers[0] && servers[0]["Id"] != null) {
+        return;
+      }
+    }
     await sleep(100);
   }
 }

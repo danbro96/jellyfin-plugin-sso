@@ -22,7 +22,9 @@
 </a>
 </p>
 
-Project archived because I'm tired of working on this after all the years.
+> **Fork notice.** This is a community fork of the archived [`9p4/jellyfin-plugin-sso`](https://github.com/9p4/jellyfin-plugin-sso), maintained by [@danbro96](https://github.com/danbro96). It adds a fix for the **native Jellyfin app (Android) login hang**: the device id is resolved via the `NativeShell` bridge and credentials are written without the hidden-iframe busy-wait, and callback errors are surfaced instead of hanging silently. All other functionality matches upstream. Install via this repo's plugin manifest — see [Releases](https://github.com/danbro96/jellyfin-plugin-sso/releases). Full credit for the plugin goes to the original authors.
+
+(Upstream note, retained:) Project archived because I'm tired of working on this after all the years.
 
 This plugin allows users to sign in through an SSO provider (such as Google, Microsoft, or your own provider). This enables one-click signin.
 

@@ -21,9 +21,10 @@ public static class WebResponse
   }
 </style>
 </head><body>
-<p>Logging in...</p>
+<p id='sso-status'>Signing in (SSO)…</p>
 <noscript>Please enable Javascript to complete the login</noscript>
 <script>
+console.log('[SSO-Auth] callback build: native-fix-1');
 
 function isTv() {
     // This is going to be really difficult to get right
@@ -424,6 +425,60 @@ const sleep = (milliseconds) => {
         var punycodeBaseUrl = protocol + punycodeDomain;
 
         return Base + @"
+function ssoAppHost() {
+    try {
+        if (window.NativeShell && window.NativeShell.AppHost) {
+            return window.NativeShell.AppHost;
+        }
+    } catch (e) {}
+    return null;
+}
+
+function ssoHostValue(host, method, fallback) {
+    try {
+        if (host && typeof host[method] === 'function') {
+            var value = host[method]();
+            if (value) {
+                return value;
+            }
+        }
+    } catch (e) {}
+    return fallback;
+}
+
+function resolveDeviceId(host) {
+    var fromNative = ssoHostValue(host, 'deviceId', null);
+    if (fromNative) {
+        return fromNative;
+    }
+    var stored = localStorage.getItem('_deviceId2');
+    if (stored) {
+        return stored;
+    }
+    var generated;
+    try {
+        generated = (window.crypto && window.crypto.randomUUID) ? window.crypto.randomUUID() : null;
+    } catch (e) {
+        generated = null;
+    }
+    if (!generated) {
+        generated = 'sso-' + Date.now().toString(36) + Math.random().toString(36).slice(2);
+    }
+    // Persist so the web client (which reads _deviceId2) reuses the same device id.
+    try { localStorage.setItem('_deviceId2', generated); } catch (e) {}
+    return generated;
+}
+
+async function getServerInfo(baseUrl) {
+    try {
+        var resp = await fetch(baseUrl + '/System/Info/Public');
+        if (resp.ok) {
+            return await resp.json();
+        }
+    } catch (e) {}
+    return null;
+}
+
 async function link(request) {
     const jfCredentialsString = localStorage.getItem(""jellyfin_credentials"");
 
@@ -460,20 +515,16 @@ async function link(request) {
 }
 
 async function main() {
-    localStorage.removeItem('jellyfin_credentials');
-    document.getElementById('iframe-main').src = '" + punycodeBaseUrl + @"/web/index.html';
-
     var data = '" + data + @"';
-    while (localStorage.getItem(""_deviceId2"") == null ||
-        localStorage.getItem(""jellyfin_credentials"") == null ||
-        JSON.parse(localStorage.getItem(""jellyfin_credentials""))['Servers'][0]['Id'] == null) {
-        // If localStorage isn't initialized yet, try again.
-        await sleep(100);
-    }
-    var deviceId = localStorage.getItem(""_deviceId2"");
-    var appName = ""Jellyfin Web"";
-    var appVersion = ""10.8.0"";
-    var deviceName = getDeviceName();
+
+    // Resolve the device identity WITHOUT loading jellyfin-web in a hidden iframe.
+    // Native apps expose it via the NativeShell bridge; the web client persists it
+    // in localStorage._deviceId2; otherwise generate (and persist) a fresh id.
+    var host = ssoAppHost();
+    var deviceId = resolveDeviceId(host);
+    var appName = ssoHostValue(host, 'appName', 'Jellyfin Web');
+    var appVersion = ssoHostValue(host, 'appVersion', '10.8.0');
+    var deviceName = ssoHostValue(host, 'deviceName', getDeviceName());
 
     var request = {deviceId, appName, appVersion, deviceName, data};
 
@@ -494,23 +545,73 @@ async function main() {
        };
        xhr.send(JSON.stringify(request));
     })
+    if (!response) {
+        document.body.innerHTML = '<p>Login failed: no response from the server. Please try again.</p>';
+        return;
+    }
+
     var responseJson = JSON.parse(response);
-    var userId = 'user-' + responseJson['User']['Id'] + '-' + responseJson['User']['ServerId'];
+    if (!responseJson || !responseJson['User'] || !responseJson['AccessToken']) {
+        document.body.innerHTML = '<p>Login failed. Please try again.</p>';
+        return;
+    }
+
+    var serverId = responseJson['User']['ServerId'];
+    var userId = 'user-' + responseJson['User']['Id'] + '-' + serverId;
     responseJson['User']['EnableAutoLogin'] = true;
     localStorage.setItem(userId, JSON.stringify(responseJson['User']));
-    var jfCreds = JSON.parse(localStorage.getItem('jellyfin_credentials'));
-    jfCreds['Servers'][0]['AccessToken'] = responseJson['AccessToken'];
-    jfCreds['Servers'][0]['UserId'] = responseJson['User']['Id'];
+
+    // Write credentials directly. Reuse the server entry jellyfin-web already wrote
+    // (it connected to this server before showing the login page); fall back to
+    // synthesising one from the public server info. No hidden iframe, no busy-wait.
+    var jfCreds;
+    try {
+        jfCreds = JSON.parse(localStorage.getItem('jellyfin_credentials'));
+    } catch (e) {
+        jfCreds = null;
+    }
+    if (!jfCreds || !Array.isArray(jfCreds['Servers'])) {
+        jfCreds = { Servers: [] };
+    }
+
+    var server = null;
+    if (serverId) {
+        server = jfCreds['Servers'].find(function (s) { return s && s['Id'] === serverId; });
+    }
+    if (!server) {
+        // Reuse Servers[0] only when it is this server (or has no id yet);
+        // never clobber the token of a different server.
+        var first = jfCreds['Servers'][0];
+        if (first && (!first['Id'] || !serverId || first['Id'] === serverId)) {
+            server = first;
+        }
+    }
+    if (!server) {
+        var info = await getServerInfo('" + punycodeBaseUrl + @"');
+        server = {
+            Id: serverId || (info && info['Id']),
+            ManualAddress: '" + punycodeBaseUrl + @"',
+            Name: (info && info['ServerName']) || 'Jellyfin',
+            LastConnectionMode: 2
+        };
+        jfCreds['Servers'].unshift(server);
+    }
+    server['AccessToken'] = responseJson['AccessToken'];
+    server['UserId'] = responseJson['User']['Id'];
+    server['DateLastAccessed'] = Date.now();
+
     localStorage.setItem('jellyfin_credentials', JSON.stringify(jfCreds));
     localStorage.setItem('enableAutoLogin', 'true');
     window.location.replace('" + punycodeBaseUrl + @"/web/index.html');
 }
 
 document.addEventListener('DOMContentLoaded', function () {
-    main();
+    main().catch(function (err) {
+        console.error('[SSO-Auth] login error', err);
+        var msg = (err && err.message) ? err.message : String(err);
+        document.body.innerHTML = '<p>SSO login error: ' + msg + '</p>';
+    });
 });
-
-// https://stackoverflow.com/a/25435165
-</script><iframe id='iframe-main' class='docs-texteventtarget-iframe' sandbox='allow-same-origin allow-forms allow-scripts' src='' style='position: absolute;width:0;height:0;border:0;'></iframe></body></html>";
+</script></body></html>";
     }
 }
