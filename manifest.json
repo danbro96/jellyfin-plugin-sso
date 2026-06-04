@@ -1,1 +1,20 @@
-[]
+[
+  {
+    "category": "Authentication",
+    "description": "This plugin allows users to sign in through an SSO provider (such as Google, Facebook, or your own provider). This enables one-click signin.\nFork of 9p4/jellyfin-plugin-sso with native (Android) app login fixed.\nReview documentation at https://github.com/danbro96/jellyfin-plugin-sso\n",
+    "guid": "505ce9d1-d916-42fa-86ca-673ef241d7df",
+    "name": "SSO Authentication",
+    "overview": "Authenticate users against an SSO provider.",
+    "owner": "danbro96",
+    "versions": [
+      {
+        "changelog": "Fork of [9p4/jellyfin-plugin-sso](https://github.com/9p4/jellyfin-plugin-sso) with the **native Jellyfin app (Android) login hang fixed**.\n\n- Resolve the device id via the `NativeShell` bridge (fallback: `_deviceId2`, then a generated id).\n- Drop the hidden-iframe + localStorage busy-wait that never completed in native app webviews.\n- Write `jellyfin_credentials` directly; surface callback errors instead of hanging silently.\n\nBuilt for Jellyfin **10.11** (targetAbi 10.11.0.0). Same plugin GUID as upstream — installs/updates in place.\n\nAdd this repo as a plugin repository in Jellyfin → Dashboard → Plugins → Repositories:\n`https://raw.githubusercontent.com/danbro96/jellyfin-plugin-sso/manifest-release/manifest.json`",
+        "checksum": "d5af45c13599b97247ef6a028e1c16cc",
+        "sourceUrl": "https://github.com/danbro96/jellyfin-plugin-sso/releases/download/v4.1.0.0/sso-authentication_4.1.0.0.zip",
+        "targetAbi": "10.11.0.0",
+        "timestamp": "2026-06-04T21:00:06Z",
+        "version": "4.1.0.0"
+      }
+    ]
+  }
+]
