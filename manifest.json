@@ -8,6 +8,14 @@
     "owner": "danbro96",
     "versions": [
       {
+        "changelog": "Clicking the SSO button now shows a loading spinner immediately (served from the OIDC start endpoint) that persists through the redirect chain until you land in the app — no more blank gap before sign-in completes.\n\nSame plugin GUID — updates in place.",
+        "checksum": "41472db59dbad29046eb71d4428221e5",
+        "sourceUrl": "https://github.com/danbro96/jellyfin-plugin-sso/releases/download/v4.1.2.0/sso-authentication_4.1.2.0.zip",
+        "targetAbi": "10.11.0.0",
+        "timestamp": "2026-06-04T21:50:38Z",
+        "version": "4.1.2.0"
+      },
+      {
         "changelog": "- **Login UX:** the post-callback page is now a centered full-viewport spinner instead of plain top-left text. Pairs with an instant overlay on the Jellyfin login button (Branding → Login disclaimer) so there's immediate feedback through the whole SSO redirect chain.\n- **CI:** all workflows forced onto Node 24 (`FORCE_JAVASCRIPT_ACTIONS_TO_NODE24`) + bumped `actions/checkout@v5` / `actions/setup-dotnet@v5` — clears the Node 20 deprecation warnings.\n\nSame plugin GUID — updates in place over 4.1.0.0.",
         "checksum": "765e6e39471b7fed1aac164d0476874a",
         "sourceUrl": "https://github.com/danbro96/jellyfin-plugin-sso/releases/download/v4.1.1.0/sso-authentication_4.1.1.0.zip",
