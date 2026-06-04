@@ -8,6 +8,14 @@
     "owner": "danbro96",
     "versions": [
       {
+        "changelog": "- **Login UX:** the post-callback page is now a centered full-viewport spinner instead of plain top-left text. Pairs with an instant overlay on the Jellyfin login button (Branding → Login disclaimer) so there's immediate feedback through the whole SSO redirect chain.\n- **CI:** all workflows forced onto Node 24 (`FORCE_JAVASCRIPT_ACTIONS_TO_NODE24`) + bumped `actions/checkout@v5` / `actions/setup-dotnet@v5` — clears the Node 20 deprecation warnings.\n\nSame plugin GUID — updates in place over 4.1.0.0.",
+        "checksum": "765e6e39471b7fed1aac164d0476874a",
+        "sourceUrl": "https://github.com/danbro96/jellyfin-plugin-sso/releases/download/v4.1.1.0/sso-authentication_4.1.1.0.zip",
+        "targetAbi": "10.11.0.0",
+        "timestamp": "2026-06-04T21:32:14Z",
+        "version": "4.1.1.0"
+      },
+      {
         "changelog": "Fork of [9p4/jellyfin-plugin-sso](https://github.com/9p4/jellyfin-plugin-sso) with the **native Jellyfin app (Android) login hang fixed**.\n\n- Resolve the device id via the `NativeShell` bridge (fallback: `_deviceId2`, then a generated id).\n- Drop the hidden-iframe + localStorage busy-wait that never completed in native app webviews.\n- Write `jellyfin_credentials` directly; surface callback errors instead of hanging silently.\n\nBuilt for Jellyfin **10.11** (targetAbi 10.11.0.0). Same plugin GUID as upstream — installs/updates in place.\n\nAdd this repo as a plugin repository in Jellyfin → Dashboard → Plugins → Repositories:\n`https://raw.githubusercontent.com/danbro96/jellyfin-plugin-sso/manifest-release/manifest.json`",
         "checksum": "d5af45c13599b97247ef6a028e1c16cc",
         "sourceUrl": "https://github.com/danbro96/jellyfin-plugin-sso/releases/download/v4.1.0.0/sso-authentication_4.1.0.0.zip",
