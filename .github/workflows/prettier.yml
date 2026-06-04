@@ -6,13 +6,17 @@ on:
   pull_request:
     branches: [ main ]
 
+env:
+  # Force JS actions onto Node 24 (Node 20 deprecated; forced default mid-June 2026).
+  # Covers creyD/prettier_action.
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
 
 jobs:
   prettier:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v5
         with:
           # Make sure the actual branch is checked out when running on pull requests
           ref: ${{ github.head_ref }}

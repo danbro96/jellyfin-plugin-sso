@@ -14,17 +14,36 @@ public static class WebResponse
 <html><head>
 <meta name='viewport' content='width=device-width, initial-scale=1'>
 <style>
+  html, body { height: 100%; }
   body {
+    margin: 0;
     background: #101010;
     color: #d1cfce;
     font-family: Noto Sans, Noto Sans HK, Noto Sans JP, Noto Sans KR, Noto Sans SC, Noto Sans TC, sans-serif;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    text-align: center;
   }
+  .sso-spinner {
+    width: 48px; height: 48px; margin: 0 auto 1.25em;
+    border: 4px solid rgba(255, 255, 255, 0.15);
+    border-top-color: #00a4dc;
+    border-radius: 50%;
+    animation: sso-spin 0.9s linear infinite;
+  }
+  @keyframes sso-spin { to { transform: rotate(360deg); } }
+  #sso-status { margin: 0; font-size: 1.05rem; opacity: 0.9; }
 </style>
 </head><body>
-<p id='sso-status'>Signing in (SSO)…</p>
+<div class='sso-box'>
+  <div class='sso-spinner'></div>
+  <p id='sso-status'>Signing in…</p>
+</div>
 <noscript>Please enable Javascript to complete the login</noscript>
 <script>
-console.log('[SSO-Auth] callback build: native-fix-1');
+console.log('[SSO-Auth] callback build: loading-ui');
 
 function isTv() {
     // This is going to be really difficult to get right
