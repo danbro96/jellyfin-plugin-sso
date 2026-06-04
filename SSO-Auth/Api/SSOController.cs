@@ -420,7 +420,11 @@ public class SSOController : ControllerBase
 
             // Track whether this is a linking request or not.
             StateManager[state.State].IsLinking = isLinking;
-            return Redirect(state.StartUrl);
+
+            // Serve a loading page that redirects to the provider instead of a bare 302, so the
+            // user sees a spinner immediately; it persists through the silent redirect chain
+            // until the callback page renders.
+            return Content(WebResponse.LoadingRedirect(state.StartUrl), MediaTypeNames.Text.Html);
         }
 
         throw new ArgumentException("Provider does not exist");

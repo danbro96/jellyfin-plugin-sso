@@ -633,4 +633,42 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 </script></body></html>";
     }
+
+    /// <summary>
+    /// A minimal spinner page that immediately redirects to <paramref name="url"/>. Returned by
+    /// the OIDC start endpoint instead of a bare 302, so the user gets a loading screen the moment
+    /// they click the SSO button. Because the browser keeps the current document visible through
+    /// the silent redirect chain (302s render nothing), this spinner stays up until the callback
+    /// page renders — covering the otherwise-blank token-exchange window.
+    /// </summary>
+    /// <param name="url">The provider authorize URL to redirect the client to.</param>
+    /// <returns>An HTML loading page that redirects to <paramref name="url"/>.</returns>
+    public static string LoadingRedirect(string url)
+    {
+        var htmlUrl = System.Net.WebUtility.HtmlEncode(url);
+        var jsUrl = System.Text.Json.JsonSerializer.Serialize(url);
+        return @"<!DOCTYPE html>
+<html><head>
+<meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta http-equiv='refresh' content='0;url=" + htmlUrl + @"'>
+<style>
+  html, body { height: 100%; }
+  body {
+    margin: 0; background: #101010; color: #d1cfce;
+    font-family: Noto Sans, Noto Sans HK, Noto Sans JP, Noto Sans KR, Noto Sans SC, Noto Sans TC, sans-serif;
+    display: flex; align-items: center; justify-content: center; min-height: 100vh; text-align: center;
+  }
+  .sso-spinner {
+    width: 48px; height: 48px; margin: 0 auto 1.25em;
+    border: 4px solid rgba(255, 255, 255, 0.15); border-top-color: #00a4dc;
+    border-radius: 50%; animation: sso-spin 0.9s linear infinite;
+  }
+  @keyframes sso-spin { to { transform: rotate(360deg); } }
+  p { margin: 0; font-size: 1.05rem; opacity: 0.9; }
+</style>
+</head><body>
+<div><div class='sso-spinner'></div><p>Signing in…</p></div>
+<script>window.location.replace(" + jsUrl + @");</script>
+</body></html>";
+    }
 }
