@@ -6,7 +6,6 @@ using System.Net.Http;
 using System.Net.Mime;
 using System.Reflection;
 using System.Security.Cryptography;
-using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Duende.IdentityModel.OidcClient;
 using Jellyfin.Data;
@@ -26,8 +25,6 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 
 namespace Jellyfin.Plugin.SSO_Auth.Api;
 
@@ -173,159 +170,20 @@ public class SSOController : ControllerBase
                     (s, claim) => s.Contains($"@{{{claim.Type}}}") ? s.Replace($"@{{{claim.Type}}}", claim.Value) : s);
             }
 
-            foreach (var claim in result.User.Claims)
+            // Evaluate the provider's claims against the RBAC configuration. The resolver returns
+            // role-derived signals which are merged onto the config-based defaults set above; it
+            // never downgrades a permission, so we OR/append rather than assign.
+            var authResult = OidcRoleResolver.Resolve(result.User.Claims, config);
+            if (authResult.Username is not null)
             {
-                if (claim.Type == (config.DefaultUsernameClaim?.Trim() ?? "preferred_username"))
-                {
-                    timedState.Username = claim.Value;
-                    if (config.Roles == null || config.Roles.Length == 0)
-                    {
-                        timedState.Valid = true;
-                    }
-                }
-
-                // Role processing
-                // The regex matches any "." not preceded by a "\": a.b.c will be split into a, b, and c, but a.b\.c will be split into a, b.c (after processing the escaped dots)
-                // We have to first process the RoleClaim string
-                string[] segments = string.IsNullOrEmpty(config.RoleClaim) ? Array.Empty<string>() : Regex.Split(config.RoleClaim.Trim(), "(?<!\\\\)\\.");
-
-                if (segments.Any())
-                {
-                    // Now we make sure that any escaped "."s ("\.") are replaced with "."
-                    segments = segments.Select(i => i.Replace("\\.", ".")).ToArray();
-
-                    if (claim.Type == segments[0])
-                    {
-                        List<string> roles;
-                        // If we are not using JSON values, just use the raw info from the claim value
-                        if (segments.Length == 1)
-                        {
-                            roles = new List<string> { claim.Value };
-                        }
-                        else
-                        {
-                            // We recursively traverse through the JSON data for the roles and parse it
-                            var json = JsonConvert.DeserializeObject<IDictionary<string, object>>(claim.Value);
-                            if (json is null)
-                            {
-                                roles = new List<string>();
-                            }
-                            else
-                            {
-                                bool missingSegment = false;
-                                for (int i = 1; i < segments.Length - 1; i++)
-                                {
-                                    var segment = segments[i];
-                                    if (!json.TryGetValue(segment, out var nextToken) || nextToken is not JObject nextObject)
-                                    {
-                                        missingSegment = true;
-                                        break;
-                                    }
-
-                                    json = nextObject.ToObject<IDictionary<string, object>>();
-                                    if (json is null)
-                                    {
-                                        missingSegment = true;
-                                        break;
-                                    }
-                                }
-
-                                if (missingSegment || !json.TryGetValue(segments[^1], out var rolesToken) || rolesToken is not JArray rolesArray)
-                                {
-                                    roles = new List<string>();
-                                }
-                                else
-                                {
-                                    // The final step is to take the JSON and turn it from a dictionary into a string
-                                    roles = rolesArray.ToObject<List<string>>();
-                                }
-                            }
-                        }
-
-                        foreach (string role in roles)
-                        {
-                            // Check if allowed to login based on roles
-                            if (config.Roles != null && config.Roles.Any())
-                            {
-                                foreach (string validRoles in config.Roles)
-                                {
-                                    if (role.Equals(validRoles))
-                                    {
-                                        timedState.Valid = true;
-                                    }
-                                }
-                            }
-
-                            // Check if admin based on roles
-                            if (config.AdminRoles != null && config.AdminRoles.Any())
-                            {
-                                foreach (string validAdminRoles in config.AdminRoles)
-                                {
-                                    if (role.Equals(validAdminRoles))
-                                    {
-                                        timedState.Admin = true;
-                                    }
-                                }
-                            }
-
-                            // Get allowed folders from roles
-                            if (config.EnableFolderRoles)
-                            {
-                                foreach (FolderRoleMap folderRoleMap in config.FolderRoleMapping)
-                                {
-                                    if (role.Equals(folderRoleMap.Role?.Trim()))
-                                    {
-                                        timedState.Folders.AddRange(folderRoleMap.Folders);
-                                    }
-                                }
-                            }
-
-                            if (config.EnableLiveTvRoles)
-                            {
-                                // Check if allowed Live TV based on roles
-                                if (config.LiveTvRoles != null && config.LiveTvRoles.Any())
-                                {
-                                    foreach (string validLiveTvRoles in config.LiveTvRoles)
-                                    {
-                                        if (role.Equals(validLiveTvRoles))
-                                        {
-                                            timedState.EnableLiveTv = true;
-                                        }
-                                    }
-                                }
-
-                                // Check if allowed Live TV management based on roles
-                                if (config.LiveTvManagementRoles != null && config.LiveTvManagementRoles.Any())
-                                {
-                                    foreach (string validLiveTvManagementRoles in config.LiveTvManagementRoles)
-                                    {
-                                        if (role.Equals(validLiveTvManagementRoles))
-                                        {
-                                            timedState.EnableLiveTvManagement = true;
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
+                timedState.Username = authResult.Username;
             }
 
-            // If the provider doesn't support the preferred username claim, then use the sub claim
-            if (!timedState.Valid)
-            {
-                foreach (var claim in result.User.Claims)
-                {
-                    if (claim.Type == "sub")
-                    {
-                        timedState.Username = claim.Value;
-                        if (config.Roles.Length == 0)
-                        {
-                            timedState.Valid = true;
-                        }
-                    }
-                }
-            }
+            timedState.Valid |= authResult.Valid;
+            timedState.Admin |= authResult.Admin;
+            timedState.Folders.AddRange(authResult.Folders);
+            timedState.EnableLiveTv |= authResult.EnableLiveTv;
+            timedState.EnableLiveTvManagement |= authResult.EnableLiveTvManagement;
 
             bool isLinking = timedState.IsLinking;
 

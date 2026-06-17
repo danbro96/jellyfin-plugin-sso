@@ -1,9 +1,9 @@
 name: "SSO Authentication"
 guid: "505ce9d1-d916-42fa-86ca-673ef241d7df"
 imageUrl: "https://raw.githubusercontent.com/danbro96/jellyfin-plugin-sso/main/img/logo.png"
-version: "4.1.2.0"
-targetAbi: "10.11.0.0"
-framework: "net9.0"
+version: "5.0.0.0"
+targetAbi: "12.0.0.0"
+framework: "net10.0"
 owner: "danbro96"
 overview: "Authenticate users against an SSO provider."
 description: |
@@ -16,6 +16,7 @@ artifacts:
   - "Duende.IdentityModel.OidcClient.dll"
   - "Duende.IdentityModel.dll"
 changelog: |
+  5.0.0.0: Jellyfin 12 / .NET 10. Requires Jellyfin server 12.0.0 or newer (will not load on 10.11 or earlier). Replaced Newtonsoft.Json with System.Text.Json and added a unit test suite.
   4.1.2.0: Show a loading spinner during SSO sign-in for immediate feedback through the redirect chain.
   4.1.1.0: Polish the post-login page into a centered spinner. CI on Node 24 (Node 20 deprecation).
   4.1.0.0: Fix native (Android) app login hang — resolve the device id via the NativeShell bridge and write credentials without the hidden-iframe busy-wait. Surface callback errors instead of hanging.

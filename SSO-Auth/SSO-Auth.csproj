@@ -1,10 +1,10 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net9.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <RootNamespace>Jellyfin.Plugin.SSO_Auth</RootNamespace>
-    <AssemblyVersion>4.1.2.0</AssemblyVersion>
-    <FileVersion>4.1.2.0</FileVersion>
+    <AssemblyVersion>5.0.0.0</AssemblyVersion>
+    <FileVersion>5.0.0.0</FileVersion>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
   </PropertyGroup>
@@ -29,11 +29,28 @@
 
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
-    <PackageReference Include="Duende.IdentityModel.OidcClient" Version="6.0.1" />
-    <PackageReference Include="Jellyfin.Controller" Version="10.11.0" />
-    <PackageReference Include="Jellyfin.Model" Version="10.11.0" />
-    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
-    <PackageReference Include="System.Security.Cryptography.Xml" Version="6.0.1" />
+    <PackageReference Include="Duende.IdentityModel.OidcClient" Version="7.1.0" />
+    <!-- Newtonsoft.Json removed in 5.0.0.0: the only usage (OIDC role-claim parsing) now uses System.Text.Json. -->
+    <!-- TODO(jf12-stable): re-pin to the stable 12.0.0 release once it is published to nuget.org. -->
+    <PackageReference Include="Jellyfin.Controller" Version="12.0.0-20260608063334" />
+    <PackageReference Include="Jellyfin.Model" Version="12.0.0-20260608063334" />
+    <!--
+      TODO(jf12-stable): remove these two pins once 12.0.0 is on nuget.org.
+      Workaround: the 12.0.0 nightly Controller pulls in two Jellyfin sub-packages
+      (Jellyfin.MediaEncoding.Keyframes and Jellyfin.Database.Implementations) at a
+      10.11.0-<nightly> version that Jellyfin does not publish to any public feed. Pin the
+      stable nuget.org builds (same 10.11 line, supersede the prereleases) so restore
+      succeeds. The Jellyfin 12 server provides these assemblies at runtime; the plugin
+      ships only SSO-Auth.dll + the Duende DLLs.
+    -->
+    <PackageReference Include="Jellyfin.MediaEncoding.Keyframes" Version="10.11.11" />
+    <PackageReference Include="Jellyfin.Database.Implementations" Version="10.11.11" />
+    <!--
+      System.Security.Cryptography.Xml is part of the net10 shared framework, so the explicit
+      package reference is unnecessary (NU1510). Removing it also drops the transitive, vulnerable
+      System.Security.Cryptography.Pkcs 6.0.1 (NU1903). SignedXml / X509CertificateLoader used in
+      Saml.cs resolve from the framework.
+    -->
   </ItemGroup>
 
   <ItemGroup>
