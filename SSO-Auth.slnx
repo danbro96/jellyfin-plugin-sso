@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="SSO-Auth.Tests/SSO-Auth.Tests.csproj" />
+  <Project Path="SSO-Auth/SSO-Auth.csproj" />
+</Solution>
