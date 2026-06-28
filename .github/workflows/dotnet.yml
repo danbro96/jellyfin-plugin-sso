@@ -22,11 +22,6 @@ jobs:
       with:
         dotnet-version: 10.0.x
     - name: Restore dependencies
-      # GITHUB_TOKEN authenticates the Jellyfin GitHub Packages source (nuget.config)
-      # so the 12.0.0 pre-release packages can be restored.
-      env:
-        GITHUB_ACTOR: ${{ github.actor }}
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: dotnet restore
     - name: Build
       run: dotnet build --no-restore --warnaserror

@@ -32,11 +32,6 @@ jobs:
       - name: Build Jellyfin Plugin
         uses: oddstr13/jellyfin-plugin-repository-manager@9497a0a499416cc572ed2e07a391d9f943a37b4d # v1.1.1
         id: jprm
-        # GITHUB_TOKEN authenticates the Jellyfin GitHub Packages source (nuget.config)
-        # so JPRM's internal restore can pull the 12.0.0 pre-release packages.
-        env:
-          GITHUB_ACTOR: ${{ github.actor }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           dotnet-target: "${{ inputs.dotnet-target }}"
 
