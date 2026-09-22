@@ -3,10 +3,19 @@
     "category": "Authentication",
     "description": "This plugin allows users to sign in through an SSO provider (such as Google, Facebook, or your own provider). This enables one-click signin.\nFork of 9p4/jellyfin-plugin-sso with native (Android) app login fixed.\nReview documentation at https://github.com/danbro96/jellyfin-plugin-sso\n",
     "guid": "505ce9d1-d916-42fa-86ca-673ef241d7df",
+    "imageUrl": "https://raw.githubusercontent.com/danbro96/jellyfin-plugin-sso/main/img/logo.png",
     "name": "SSO Authentication",
     "overview": "Authenticate users against an SSO provider.",
     "owner": "danbro96",
     "versions": [
+      {
+        "changelog": "Targets the stable Jellyfin 12 release. **Requires Jellyfin server 12.0.0 or newer**; this build will not load on 10.11 or earlier. For 10.11, stay on 4.1.2.0.\n\nUpgrading in place preserves your provider configuration and account links.\n\n### Platform\n- Jellyfin 12 / .NET 10, targetAbi 12.0.0.0. Installs on both 12.0 and 12.1.\n- Newtonsoft.Json replaced with System.Text.Json.\n\n### Security\n- OpenID login states are bound to the provider that issued them. A state minted at one configured provider could previously be redeemed at another.\n- Login states expire when redeemed, not only when swept, and can no longer be redeemed twice.\n- The login-state store is now thread-safe; concurrent sign-ins could previously fail or corrupt it.\n- The admin states endpoint no longer exposes the PKCE code verifier and nonce.\n\n### Fixes\n- Canonical account links were discarded when written on a provider that had none.\n- A nested role claim containing a non-string entry denied all roles.\n- The token-exchange redirect URI did not match the one sent on the `/start/` path.\n- `Unregister` did not persist its change.\n- Null guards for unset OpenID scopes and SAML roles.\n\n### Other\n- Release packaging was broken by the move to `.slnx`; fixed and now exercised on every pull request.\n- 53 unit tests, up from 35, including a pinned 4.x config-upgrade fixture.\n",
+        "checksum": "88f964a08c20bce65a9404afbd5b270e",
+        "sourceUrl": "https://github.com/danbro96/jellyfin-plugin-sso/releases/download/v5.0.0.0/sso-authentication_5.0.0.0.zip",
+        "targetAbi": "12.0.0.0",
+        "timestamp": "2026-09-22T05:05:01Z",
+        "version": "5.0.0.0"
+      },
       {
         "changelog": "Clicking the SSO button now shows a loading spinner immediately (served from the OIDC start endpoint) that persists through the redirect chain until you land in the app — no more blank gap before sign-in completes.\n\nSame plugin GUID — updates in place.",
         "checksum": "41472db59dbad29046eb71d4428221e5",
