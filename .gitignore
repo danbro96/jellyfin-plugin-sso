@@ -452,3 +452,4 @@ $RECYCLE.BIN/
 ##
 .vscode/*
 .vscode
+SSO-Auth/build.yaml

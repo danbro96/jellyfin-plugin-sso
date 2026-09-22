@@ -33,11 +33,12 @@ jobs:
       uses: actions/setup-dotnet@v5
       with:
         dotnet-version: 10.0.x
+    - name: Stage build manifest for JPRM
+      run: cp build.yaml SSO-Auth/build.yaml
     - name: Build Jellyfin Plugin
       uses: oddstr13/jellyfin-plugin-repository-manager@9497a0a499416cc572ed2e07a391d9f943a37b4d # v1.1.1
       id: jprm
       with:
-        # JPRM discovers .sln, not .slnx; point it at the csproj's directory.
         path: SSO-Auth
         dotnet-target: net10.0
     - name: Upload Artifact
