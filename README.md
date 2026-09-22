@@ -2,29 +2,27 @@
 
 <p align="center">
 
-<img alt="Logo" src="https://raw.githubusercontent.com/9p4/jellyfin-plugin-sso/main/img/logo.png"/>
+<img alt="Logo" src="https://raw.githubusercontent.com/danbro96/jellyfin-plugin-sso/main/img/logo.png"/>
 <br/>
 <br/>
-<a href="https://github.com/9p4/jellyfin-plugin-sso">
-<img alt="GPL 3.0 License" src="https://img.shields.io/github/license/9p4/jellyfin-plugin-sso.svg"/>
+<a href="https://github.com/danbro96/jellyfin-plugin-sso">
+<img alt="GPL 3.0 License" src="https://img.shields.io/github/license/danbro96/jellyfin-plugin-sso.svg"/>
 </a>
-<a href="https://github.com/9p4/jellyfin-plugin-sso/actions/workflows/dotnet.yml">
-<img alt="GitHub Actions Build Status" src="https://github.com/9p4/jellyfin-plugin-sso/actions/workflows/dotnet.yml/badge.svg"/>
+<a href="https://github.com/danbro96/jellyfin-plugin-sso/actions/workflows/dotnet.yml">
+<img alt="GitHub Actions Build Status" src="https://github.com/danbro96/jellyfin-plugin-sso/actions/workflows/dotnet.yml/badge.svg"/>
 </a>
-<a href="https://github.com/9p4/jellyfin-plugin-sso/releases">
-<img alt="Current Release" src="https://img.shields.io/github/release/9p4/jellyfin-plugin-sso.svg"/>
+<a href="https://github.com/danbro96/jellyfin-plugin-sso/releases">
+<img alt="Current Release" src="https://img.shields.io/github/release/danbro96/jellyfin-plugin-sso.svg"/>
 </a>
-<a href="https://github.com/9p4/jellyfin-plugin-sso/releases.atom">
+<a href="https://github.com/danbro96/jellyfin-plugin-sso/releases.atom">
 <img alt="Release RSS Feed" src="https://img.shields.io/badge/rss-releases-ffa500?logo=rss" />
 </a>
-<a href="https://github.com/9p4/jellyfin-plugin-sso/commits/main.atom">
+<a href="https://github.com/danbro96/jellyfin-plugin-sso/commits/main.atom">
 <img alt="Main Commits RSS Feed" src="https://img.shields.io/badge/rss-commits-ffa500?logo=rss" />
 </a>
 </p>
 
 > **Fork notice.** This is a community fork of the archived [`9p4/jellyfin-plugin-sso`](https://github.com/9p4/jellyfin-plugin-sso), maintained by [@danbro96](https://github.com/danbro96). It adds a fix for the **native Jellyfin app (Android) login hang**: the device id is resolved via the `NativeShell` bridge and credentials are written without the hidden-iframe busy-wait, and callback errors are surfaced instead of hanging silently. All other functionality matches upstream. Install via this repo's plugin manifest — see [Releases](https://github.com/danbro96/jellyfin-plugin-sso/releases). Full credit for the plugin goes to the original authors.
-
-(Upstream note, retained:) Project archived because I'm tired of working on this after all the years.
 
 This plugin allows users to sign in through an SSO provider (such as Google, Microsoft, or your own provider). This enables one-click signin.
 
@@ -34,9 +32,9 @@ Existing users may link new SSO accounts, or remove existing links using self-se
 
 ## Current State:
 
-This is 100% alpha software! PRs are welcome to improve the code.
+PRs are welcome to improve the code.
 
-~~There is NO admin configuration! You must use the API to configure the program!~~ Added by [strazto](https://github.com/strazto) in PR [#18](https://github.com/9p4/jellyfin-plugin-sso/pull/18) and [#27](https://github.com/9p4/jellyfin-plugin-sso/pull/27).
+Admin configuration is available in the Jellyfin dashboard, added upstream by [strazto](https://github.com/strazto) in PR [#18](https://github.com/9p4/jellyfin-plugin-sso/pull/18) and [#27](https://github.com/9p4/jellyfin-plugin-sso/pull/27).
 
 **The 5.x release line targets Jellyfin 12. For Jellyfin 10.11 use the 4.x releases; [for older servers (>=10.8)](https://github.com/9p4/jellyfin-plugin-sso/issues/3) use earlier releases. Works on the Web UI or clients supporting [Quick Connect](https://jellyfin.org/docs/general/server/quick-connect).**
 
@@ -61,35 +59,22 @@ This is 100% alpha software! PRs are welcome to improve the code.
 
 ## Security
 
-This is my first time writing C# so please take all of the code written here with a grain of salt. This program should be reasonably secure since it validates all information passed from the client with either a certificate or a secret internal state.
+All information passed from the client is validated with either a certificate or a secret internal state. Report suspected vulnerabilities as described in [SECURITY.md](SECURITY.md).
 
 ## Installing
 
-Add the package repo [https://raw.githubusercontent.com/9p4/jellyfin-plugin-sso/manifest-release/manifest.json](https://raw.githubusercontent.com/9p4/jellyfin-plugin-sso/manifest-release/manifest.json) to your Jellyfin plugin repositories.
+Add the package repo [https://raw.githubusercontent.com/danbro96/jellyfin-plugin-sso/manifest-release/manifest.json](https://raw.githubusercontent.com/danbro96/jellyfin-plugin-sso/manifest-release/manifest.json) to your Jellyfin plugin repositories.
 
 Then, install the plugin from the plugin catalog!
 
+If you are migrating from upstream, remove the old `9p4` repository first. The fork uses the same plugin GUID, so it installs in place and your provider configuration is preserved.
+
 See [Contributing](#contributing) for instructions on how to build from source.
-
-### (Fallback) Legacy package repo (Versions <= 3.3.0)
-
-We have transitioned to a release system that automates distribution, packaging & hosting.
-This system is new, and if something goes wrong, you can try using the old package repository as a fallback.
-
-Instead add the **old** package repository: [https://repo.ersei.net/jellyfin/manifest.json](https://repo.ersei.net/jellyfin/manifest.json) to your jellyfin plugin repositories.
-
-### Installing cutting edge/nightly builds
-
-If you're impatient/brave/feel like helping us test things out, you can install the nightly build of the plugin, which is automatically built against the main branch.
-
-The nightly build can be installed from the [main plugin repo](https://raw.githubusercontent.com/9p4/jellyfin-plugin-sso/manifest-release/manifest.json), and will always have a version number of `0.0.0.9000`.
-
-The nightly build may have new features unavailable in other builds, but **be warned**, things may change frequently in nightly builds, and things may break, and you could lose data.
 
 ## Roadmap
 
 - [x] Admin page
-- [ ] Automated tests
+- [x] Automated tests
 - [x] Add role/claims support
 - [x] Use canonical usernames instead of preferred usernames
 - [x] Add user self-service
@@ -278,7 +263,9 @@ This project uses Nix flakes to manage development dependencies. Run `nix develo
 
 ## Building
 
-This is built with .NET 10.0. Build with `dotnet publish .` for the debug release in the `SSO-Auth` directory. Copy over the `Duende.IdentityModel.OidcClient.dll`, the `Duende.IdentityModel.dll` and the `SSO-Auth.dll` files in the `/bin/Debug/net10.0/publish` directory to a new folder in your Jellyfin configuration: `config/plugins/sso`.
+This is built with .NET 10.0. Run `dotnet publish .` in the `SSO-Auth` directory. Copy the `SSO-Auth.dll`, `Duende.IdentityModel.OidcClient.dll` and `Duende.IdentityModel.dll` files from `bin/Release/net10.0/publish` to a new folder in your Jellyfin configuration: `config/plugins/sso`.
+
+Run the tests with `dotnet test SSO-Auth.slnx`.
 
 ### VSCode Workflow
 
@@ -296,17 +283,21 @@ git clone https://github.com/strazto/jellyfin-plugin-sso-vscode .vscode
 
 This plugin uses [JPRM](https://github.com/oddstr13/jellyfin-plugin-repository-manager) to build the plugin. Refer to the documentation there to install JPRM.
 
-Build the zipped plugin with `jprm --verbosity=debug plugin build .`.
+Build the zipped plugin with `jprm --verbosity=debug plugin build SSO-Auth`. JPRM
+does not recognise `.slnx`, so it is pointed at the project directory rather than
+the repo root.
 
 ### CI Releases
 
-Anything merged to the main branch will be built and published by our CI system.
+Pull requests are built and tested, and the packaged zip is attached to the run
+as an artifact.
 
-Anything tagged/released as a formal Github release will also be built and published by our CI system.
+Publishing a GitHub release builds the zip, attaches it with checksums, and
+regenerates `manifest.json` on the `manifest-release` branch.
 
 If you wish to use releases from your own fork, refer to
 [Installing](#installing), however, you will need to change the url to the
-manifest file, `https://raw.githubusercontent.com/9p4/jellyfin-plugin-sso/manifest-release/manifest.json`
+manifest file, `https://raw.githubusercontent.com/danbro96/jellyfin-plugin-sso/manifest-release/manifest.json`
 so that it refers to your fork.
 
 ## Credits and Thanks
