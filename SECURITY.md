@@ -1,3 +1,13 @@
-Please email all security vulnerabilities and issues found to the email "contact at ersei dot net". If using LLMs/AI to find the issues, first verify the issue exists manually. Please do not publicly disclose security vulnerabilities until after a stable release for the fix has been released for 30 days.
+# Security Policy
 
-The latest released version is the only supported version.
+## Supported versions
+
+Only the latest release is supported. The 5.x line targets Jellyfin 12; 4.x was the last line for Jellyfin 10.11 and receives no further fixes.
+
+## Reporting a vulnerability
+
+Report privately through [GitHub security advisories](https://github.com/danbro96/jellyfin-plugin-sso/security/advisories/new). Do not open a public issue.
+
+If you used an LLM to find the issue, verify it manually first.
+
+Please do not disclose publicly until a fix has been released for 30 days.

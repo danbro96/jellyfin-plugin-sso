@@ -30,8 +30,8 @@ Add your plugin configuration XML file here formatted as code (with three backti
 
 - OS: [e.g. Linux]
 - Browser: [e.g. chrome, safari]
-- Jellyfin Version: [e.g. 10.8 Alpha 4]
-- Plugin Version: [e.g. 2.0.1.0 or a Git tag]
+- Jellyfin Version: [e.g. 12.1]
+- Plugin Version: [e.g. 5.0.0.0 or a Git tag]
 
 **Additional context**
 Add any other context about the problem here. Was the plugin built from source?

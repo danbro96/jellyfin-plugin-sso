@@ -3,19 +3,14 @@ on:
     inputs:
       dotnet-version:
         required: false
-        default: "9.0.x"
+        default: "10.0.x"
         description: "The .NET version to setup for the build"
         type: string
       dotnet-target:
         required: false
-        default: "net9.0"
+        default: "net10.0"
         description: "The .NET target to set for JPRM"
         type: string
-
-env:
-  # Force JS actions onto Node 24 (Node 20 deprecated; forced default mid-June 2026).
-  # Covers pinned third-party actions (JPRM) that have no Node 24 tag yet.
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
 
 jobs:
   build:
@@ -33,10 +28,12 @@ jobs:
         uses: oddstr13/jellyfin-plugin-repository-manager@9497a0a499416cc572ed2e07a391d9f943a37b4d # v1.1.1
         id: jprm
         with:
+          # JPRM discovers .sln, not .slnx; point it at the csproj's directory.
+          path: SSO-Auth
           dotnet-target: "${{ inputs.dotnet-target }}"
 
       - name: Upload Artifact
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # tag=v4.6.2
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: build-artifact
           retention-days: 30
