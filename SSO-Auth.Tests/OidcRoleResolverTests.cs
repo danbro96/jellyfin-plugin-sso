@@ -131,6 +131,22 @@ public class OidcRoleResolverTests
     }
 
     [Fact]
+    public void NestedJsonRoleClaim_NonStringElement_DoesNotDiscardValidRoles()
+    {
+        var config = new OidConfig
+        {
+            Roles = new[] { "jellyfin-user" },
+            RoleClaim = "resource_access.jellyfin.roles",
+        };
+        var claimValue = "{\"jellyfin\":{\"roles\":[\"jellyfin-user\",42,null,{\"a\":1}]}}";
+        var result = OidcRoleResolver.Resolve(
+            Claims(("preferred_username", "grace"), ("resource_access", claimValue)),
+            config);
+
+        Assert.True(result.Valid);
+    }
+
+    [Fact]
     public void EscapedDotInRoleClaim_TreatedAsLiteral()
     {
         // "resource\.access" is a single literal segment containing a dot, then ".roles".

@@ -156,8 +156,7 @@ public static class OidcRoleResolver
 
     // Extracts the roles from a claim value. With a single-segment role claim the value is the
     // role itself; otherwise the value is JSON and we traverse the nested objects to the final
-    // segment, which must be an array of strings. Malformed/unexpected JSON yields no roles
-    // (the previous Newtonsoft-based code would throw on invalid JSON).
+    // segment, which must be an array of strings. Malformed/unexpected JSON yields no roles.
     private static IReadOnlyList<string> ExtractRoles(string claimValue, string[] segments)
     {
         if (segments.Length == 1)
@@ -187,14 +186,15 @@ public static class OidcRoleResolver
                 return Array.Empty<string>();
             }
 
+            // Skip non-string elements rather than discarding the whole array with them.
             return rolesArray
-                .Where(node => node is not null)
+                .OfType<JsonValue>()
+                .Where(node => node.GetValueKind() == JsonValueKind.String)
                 .Select(node => node.GetValue<string>())
                 .ToList();
         }
-        catch (Exception ex) when (ex is JsonException or InvalidOperationException or FormatException)
+        catch (Exception ex) when (ex is JsonException or InvalidOperationException or FormatException or ArgumentException)
         {
-            // Malformed JSON, or a non-string role element: treat as "no roles".
             return Array.Empty<string>();
         }
     }

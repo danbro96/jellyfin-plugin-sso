@@ -44,7 +44,7 @@ public class SSOController : ControllerBase
     private readonly IProviderManager _providerManager;
     private readonly IServerConfigurationManager _serverConfigurationManager;
     private readonly IHttpClientFactory _httpClientFactory;
-    private static readonly IDictionary<string, TimedAuthorizeState> StateManager = new Dictionary<string, TimedAuthorizeState>();
+    private static readonly OidStateStore StateManager = OidStateStore.Instance;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="SSOController"/> class.
@@ -111,18 +111,20 @@ public class SSOController : ControllerBase
                 return BadRequest("Missing state");
             }
 
-            if (!StateManager.TryGetValue(state, out var timedState))
+            var timedState = StateManager.Get(state, provider);
+            if (timedState == null)
             {
                 return BadRequest("Invalid or expired state");
             }
 
-            var scopes = config.OidScopes == null ? new string[2] : config.OidScopes;
+            var scopes = config.OidScopes ?? Array.Empty<string>();
             var options = new OidcClientOptions
             {
                 Authority = config.OidEndpoint?.Trim(),
                 ClientId = config.OidClientId?.Trim(),
                 ClientSecret = config.OidSecret?.Trim(),
-                RedirectUri = GetRequestBase(config.SchemeOverride, config.PortOverride) + $"/sso/OID/{(Request.Path.Value.Contains("/start/", StringComparison.InvariantCultureIgnoreCase) ? "redirect" : "r")}/" + provider,
+                // Must match the redirect_uri sent at authorization time, which is the path the IDP called back on.
+                RedirectUri = GetRequestBase(config.SchemeOverride, config.PortOverride) + $"/sso/OID/{(Request.Path.Value.Contains("/redirect/", StringComparison.InvariantCultureIgnoreCase) ? "redirect" : "r")}/" + provider,
                 Scope = string.Join(" ", scopes.Prepend("openid profile")),
                 DisablePushedAuthorization = config.DisablePushedAuthorization,
                 LoggerFactory = _loggerFactory,
@@ -218,7 +220,7 @@ public class SSOController : ControllerBase
     [HttpGet("OID/start/{provider}")]
     public async Task<ActionResult> OidChallenge(string provider, [FromQuery] bool isLinking = false)
     {
-        Invalidate();
+        StateManager.RemoveExpired();
         OidConfig config;
         try
         {
@@ -231,12 +233,9 @@ public class SSOController : ControllerBase
 
         if (config.Enabled)
         {
-            bool newPath = config.NewPath;
-            if (!isLinking)
-            {
-                newPath = Request.Path.Value.Contains("/start/", StringComparison.InvariantCultureIgnoreCase);
-                config.NewPath = newPath;
-            }
+            bool newPath = isLinking
+                ? config.NewPath
+                : Request.Path.Value.Contains("/start/", StringComparison.InvariantCultureIgnoreCase);
 
             string redirectUri = GetRequestBase(config.SchemeOverride, config.PortOverride) + $"/sso/OID/{(newPath ? "redirect" : "r")}/" + provider;
 
@@ -246,7 +245,7 @@ public class SSOController : ControllerBase
                 ClientId = config.OidClientId?.Trim(),
                 ClientSecret = config.OidSecret?.Trim(),
                 RedirectUri = redirectUri,
-                Scope = string.Join(" ", config.OidScopes.Prepend("openid profile")),
+                Scope = string.Join(" ", (config.OidScopes ?? Array.Empty<string>()).Prepend("openid profile")),
                 DisablePushedAuthorization = config.DisablePushedAuthorization,
                 LoggerFactory = _loggerFactory,
                 LoadProfile = !config.DoNotLoadProfile,
@@ -274,10 +273,11 @@ public class SSOController : ControllerBase
                 return ReturnError(StatusCodes.Status400BadRequest, $"Error preparing login: {state.Error} - {state.ErrorDescription}");
             }
 
-            StateManager.Add(state.State, new TimedAuthorizeState(state, DateTime.Now));
+            var timedState = new TimedAuthorizeState(state, DateTime.UtcNow, provider);
 
             // Track whether this is a linking request or not.
-            StateManager[state.State].IsLinking = isLinking;
+            timedState.IsLinking = isLinking;
+            StateManager.Add(timedState);
 
             // Serve a loading page that redirects to the provider instead of a bare 302, so the
             // user sees a spinner immediately; it persists through the silent redirect chain
@@ -354,7 +354,7 @@ public class SSOController : ControllerBase
     [HttpGet("OID/States")]
     public ActionResult OidStates()
     {
-        return Ok(StateManager);
+        return Ok(StateManager.List());
     }
 
     /// <summary>
@@ -380,27 +380,24 @@ public class SSOController : ControllerBase
 
         if (config.Enabled)
         {
-            foreach (var kvp in StateManager)
+            var timedState = StateManager.Redeem(response.Data, provider);
+            if (timedState != null)
             {
-                if (kvp.Value.State.State.Equals(response.Data) && kvp.Value.Valid)
-                {
-                    Guid userId = await CreateCanonicalLinkAndUserIfNotExist("oid", provider, kvp.Value.Username);
+                Guid userId = await CreateCanonicalLinkAndUserIfNotExist("oid", provider, timedState.Username);
 
-                    var authenticationResult = await Authenticate(
-                        userId,
-                        kvp.Value.Admin,
-                        config.EnableAuthorization,
-                        config.EnableAllFolders,
-                        kvp.Value.Folders.ToArray(),
-                        kvp.Value.EnableLiveTv,
-                        kvp.Value.EnableLiveTvManagement,
-                        response,
-                        config.DefaultProvider?.Trim(),
-                        kvp.Value.AvatarURL)
-                        .ConfigureAwait(false);
-                    StateManager.Remove(kvp.Key);
-                    return Ok(authenticationResult);
-                }
+                var authenticationResult = await Authenticate(
+                    userId,
+                    timedState.Admin,
+                    config.EnableAuthorization,
+                    config.EnableAllFolders,
+                    timedState.Folders.ToArray(),
+                    timedState.EnableLiveTv,
+                    timedState.EnableLiveTvManagement,
+                    response,
+                    config.DefaultProvider?.Trim(),
+                    timedState.AvatarURL)
+                    .ConfigureAwait(false);
+                return Ok(authenticationResult);
             }
         }
 
@@ -446,8 +443,10 @@ public class SSOController : ControllerBase
 
             bool valid = false;
 
+            string[] configuredRoles = config.Roles ?? Array.Empty<string>();
+
             // If no roles are configured, don't use RBAC
-            if (config.Roles.Length == 0)
+            if (configuredRoles.Length == 0)
             {
                 valid = true;
             }
@@ -455,7 +454,7 @@ public class SSOController : ControllerBase
             // Check if user is allowed to log in based on roles
             foreach (string role in samlResponse.GetCustomAttributes("Role"))
             {
-                foreach (string allowedRole in config.Roles)
+                foreach (string allowedRole in configuredRoles)
                 {
                     if (allowedRole.Equals(role))
                     {
@@ -699,10 +698,16 @@ public class SSOController : ControllerBase
     /// <returns>Whether this API endpoint succeeded.</returns>
     [Authorize(Policy = Policies.RequiresElevation)]
     [HttpPost("Unregister/{username}")]
-    public ActionResult Unregister(string username, [FromBody] string provider)
+    public async Task<ActionResult> Unregister(string username, [FromBody] string provider)
     {
         User user = _userManager.GetUserByName(username);
+        if (user == null)
+        {
+            return NotFound("No matching user found");
+        }
+
         user.AuthenticationProviderId = provider;
+        await _userManager.UpdateUserAsync(user).ConfigureAwait(false);
 
         return Ok();
     }
@@ -981,13 +986,10 @@ public class SSOController : ControllerBase
             return BadRequest("No matching provider found");
         }
 
-        foreach (var kvp in StateManager)
+        var timedState = StateManager.Redeem(response.Data, provider);
+        if (timedState != null)
         {
-            if (kvp.Value.State.State.Equals(response.Data) && kvp.Value.Valid)
-            {
-                string providerUserId = kvp.Value.Username;
-                return CreateCanonicalLink("oid", provider, jellyfinUserId, providerUserId);
-            }
+            return CreateCanonicalLink("oid", provider, jellyfinUserId, timedState.Username);
         }
 
         return Problem("Something went wrong!");
@@ -1129,18 +1131,6 @@ public class SSOController : ControllerBase
         return await _sessionManager.AuthenticateDirect(authRequest).ConfigureAwait(false);
     }
 
-    private void Invalidate()
-    {
-        foreach (var kvp in StateManager)
-        {
-            var now = DateTime.Now;
-            if (now.Subtract(kvp.Value.Created).TotalMinutes > 1)
-            {
-                StateManager.Remove(kvp.Key);
-            }
-        }
-    }
-
     private string GetRequestBase(string schemeOverride = null, int? portOverride = null)
     {
         int requestPort;
@@ -1224,10 +1214,12 @@ public class TimedAuthorizeState
     /// </summary>
     /// <param name="state">The AuthorizeState to time.</param>
     /// <param name="created">When this state was created.</param>
-    public TimedAuthorizeState(AuthorizeState state, DateTime created)
+    /// <param name="provider">The provider that issued this state.</param>
+    public TimedAuthorizeState(AuthorizeState state, DateTime created, string provider)
     {
         State = state;
         Created = created;
+        Provider = provider;
         Valid = false;
         Admin = false;
         IsLinking = false;
@@ -1245,6 +1237,11 @@ public class TimedAuthorizeState
     /// Gets or sets when this object was created to time it out.
     /// </summary>
     public DateTime Created { get; set; }
+
+    /// <summary>
+    /// Gets or sets the provider that issued this state. States must only be redeemed at their issuing provider.
+    /// </summary>
+    public string Provider { get; set; }
 
     /// <summary>
     /// Gets or sets a value indicating whether the user is valid.
